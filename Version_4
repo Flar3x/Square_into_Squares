@@ -1,0 +1,125 @@
+class Node:
+    
+    def __init__(self, number, lst, parent):
+        self.number = number
+        self.lst = lst
+        self.parent = parent
+        self.left = None
+        self.right = None
+        self.reach_zero = False
+        
+    def populate_fast(self):
+        if self.number > 1 and self.lst == [1]:
+            self.climb_back_rerun()
+        elif self.number >= 1 and self.lst == []:
+            pass
+        elif self.number == 0: 
+            self.reach_zero = True
+            self.climb_back_root()
+
+        else:
+            if self.lst[0]**2 <= self.number:
+                proxy = self.number - self.lst[0]**2 
+                if self.right is None: 
+                    self.right = Node(proxy, self.lst[1:], self)
+                    self.right.populate_fast() 
+            else:
+                new_lst = [x for x in self.lst if x**2 <= self.number]
+                if self.left is None:
+                    self.left = Node(self.number, new_lst, self)
+                    self.left.populate_fast()
+    
+    def climb_back_root(self):
+        if self.parent is None:
+            self.reach_zero = True
+        else:
+            if self.reach_zero:
+                self.parent.reach_zero = True
+                self.parent.climb_back_root()
+    
+    def climb_back_rerun(self):
+        if self.parent is not None and self.number > 0:
+            if self is self.parent.left:
+                self.parent.climb_back_rerun()
+            elif self is self.parent.right and self.parent.left is None:
+                self.parent.left = Node(self.parent.number, self.parent.lst[1:], self.parent)
+                self.parent.left.populate_fast()
+            elif self is self.parent.right and self.parent.left is not None:
+                self.parent.climb_back_rerun()   
+
+def check_duplicate_lst(lst):
+    for i in lst:
+        if lst.count(i) > 1:
+            return False
+        else:
+            continue
+    return True
+
+
+def check_max_lst(lst_of_lsts):
+    proxy = list(map(sum,lst_of_lsts))
+    max_value = max(proxy)
+    indeces = []
+    for i in range(len(proxy)):
+        if proxy[i] == max_value:
+            indeces.append(i)
+        else:
+            continue
+    if len(indeces) == 1:
+        return lst_of_lsts[indeces[0]]
+    else:
+        switch, counter = 0, 1
+        max_element = 0
+        result = '______'
+        while switch < len(indeces):
+            for j in indeces:
+                if lst_of_lsts[j][-counter] > max_element:
+                    max_element = lst_of_lsts[j][-counter]
+                    result = lst_of_lsts[j]
+                    switch += 1
+                    
+                elif lst_of_lsts[j][-counter] == max_element:
+                    switch = 0
+                    counter += 1
+                    break
+        return result
+
+def global_dfs_zero(node):  
+    all_seq = {}
+    def helper(node, counter, storage):
+        if node.number < 0:
+            pass
+        elif node.number == 0:
+            storage.sort()
+            all_seq[counter] = storage
+            pass
+        else:
+            if node.left and node.right is not None:
+                temp_counter = counter + 1
+                temp_storage = storage.copy()
+                helper(node.left, temp_counter, temp_storage)
+                storage.append(node.right.lst[0])
+                helper(node.right, counter, storage)
+            elif node.left is None and node.right is not None:
+                storage.append(node.lst[0])
+                helper(node.right, counter, storage)
+            elif node.right is None and node.left is not None:
+                helper(node.left, counter, storage)
+    
+    helper(node, 1, [])
+    
+    result = list(filter(check_duplicate_lst, all_seq.values()))
+    
+    
+    if len(result) == 1:
+        return result[0]
+    elif len(result) == 0:
+        return None
+    else:
+        return check_max_lst(result)
+
+def decompose(n):
+    root_number = n**2
+    root = Node(root_number, list(reversed(range(1,n))), None)
+    root.populate_fast()
+    return global_dfs_zero(root)
